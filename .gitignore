@@ -1,0 +1,7 @@
+__pycache__/
+.vscode/
+build/
+output/
+weights/
+data/
+*.py[cod]
