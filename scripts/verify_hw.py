@@ -1,8 +1,8 @@
 import os
 
 def main():
-    labels_file = "test_labels.txt"
-    preds_file = "hw_predictions.txt"
+    labels_file = "output/test_labels.txt"
+    preds_file = "output/hw_predictions.txt"
 
     # Check if files exist
     if not os.path.exists(labels_file) or not os.path.exists(preds_file):

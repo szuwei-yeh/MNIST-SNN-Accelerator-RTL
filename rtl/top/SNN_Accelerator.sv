@@ -72,6 +72,7 @@ module SNN_Accelerator #(
                 .clk(clk), .rst_n(rst_n), .i_valid(lb_valid),
                 .i_clear_mem(fsm_clear_mem), .i_vmem_read(vmem_read_data[gi]),
                 .i_window(lb_window), .i_weights(weights_mem[gi]),
+                .i_skip(o_skip),
                 .o_spike(m_axis_spike[gi]), .o_vmem_valid(pe_vmem_valid[gi]),
                 .o_vmem_write(vmem_write_data[gi])
             );

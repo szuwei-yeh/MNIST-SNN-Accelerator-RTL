@@ -10,6 +10,7 @@ module ConvPE #(
     input  logic signed [ACC_WIDTH-1:0]      i_vmem_read,
     input  logic        [8:0][DATA_WIDTH-1:0] i_window,
     input  logic signed [8:0][DATA_WIDTH-1:0] i_weights,
+    input  logic                             i_skip,
     output logic                             o_spike,
     output logic                             o_vmem_valid,
     output logic signed [ACC_WIDTH-1:0]      o_vmem_write
@@ -17,9 +18,11 @@ module ConvPE #(
     logic signed [ACC_WIDTH-1:0] current_sum;
     always_comb begin
         current_sum = 0;
-        for (int i = 0; i < 9; i++) begin
-            //current_sum = current_sum + ($signed({1'b0, i_window[i]}) * i_weights[i]);
-            current_sum = current_sum + ($signed({1'b0, i_window[i]}) * $signed(i_weights[i]));
+        if (!i_skip) begin
+            for (int i = 0; i < 9; i++) begin
+                //current_sum = current_sum + ($signed({1'b0, i_window[i]}) * i_weights[i]);
+                current_sum = current_sum + ($signed({1'b0, i_window[i]}) * $signed(i_weights[i]));
+            end
         end
     end
 
