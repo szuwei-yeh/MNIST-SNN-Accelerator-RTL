@@ -16,6 +16,10 @@ A custom RTL implementation of a Spiking Neural Network (SNN) designed for MNIST
 
 ## 🚀 Quick Start
 
+### 0. Train model & export weights
+python scripts/snn.py
+python scripts/export_parameters.py
+
 ### 1. Run RTL Simulation
 Compile the design and run the 100-image batch test using Icarus Verilog:
 ```bash
