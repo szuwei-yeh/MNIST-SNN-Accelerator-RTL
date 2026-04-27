@@ -30,55 +30,87 @@ Standard-cell ASIC synthesis has no equivalent — an SRAM macro
 (OpenRAM / DFFRAM) would be required, which is a separate flow.
 The Conv+Pool core represents the novel hardware design.
 
+## Implementation Results
+
+Obtained from a complete RTL-to-GDSII run on SKY130HD using OpenROAD flow scripts.
+
+| Metric | Value |
+|--------|-------|
+| Target clock | 50 MHz (20 ns) |
+| Achieved Fmax | **62 MHz** |
+| Setup WNS | **+3.88 ns** (0 violations) |
+| Hold WNS | **+0.35 ns** (0 violations) |
+| Core area | **8.875 mm²** (3000×3000 µm die, 62% utilization) |
+| Total power | **931 mW** |
+| DRC violations | **0** |
+| Total std cells | 364,655 (125,399 sequential) |
+
+Full metrics: [`asic/reports/6_report.json`](reports/6_report.json)
+
+> **Note on die size**: The Conv+Pool core uses 8× `Vmem_Array` instances
+> (676×18-bit flip-flop RAM each), expanding to ~193K cells after synthesis.
+> A 3000×3000 µm die is required; the original 500×500 µm placeholder is too small.
+
 ## Setup steps
 
-### 1. Generate conv weights localparam
+### 1. Weights and RTL
+
+Conv weights are already hardcoded as `localparam` in `asic/src/SNN_Accelerator.sv` —
+no need to run `gen_weights.py` unless you retrain the model.
+
+Copy unchanged RTL from `rtl/` to `asic/src/`:
 
 ```bash
-python3 asic/scripts/gen_weights.py
-```
-
-Paste the output into `asic/src/SNN_Accelerator.sv`,
-replacing the placeholder `8'sh00` lines under `CONV_WEIGHTS`.
-
-### 2. Copy unchanged RTL files
-
-```bash
-cp rtl/core/AvgPooling.sv       asic/src/
-cp rtl/core/ConvPE.sv           asic/src/
-cp rtl/core/LineBuffer.sv       asic/src/
+cp rtl/core/AvgPooling.sv         asic/src/
+cp rtl/core/ConvPE.sv             asic/src/
+cp rtl/core/LineBuffer.sv         asic/src/
 cp rtl/core/SparsityController.sv asic/src/
-cp rtl/core/TimeStep_FSM.sv     asic/src/
-cp rtl/memory/Vmem_Array.sv     asic/src/
+cp rtl/core/TimeStep_FSM.sv       asic/src/
+cp rtl/memory/Vmem_Array.sv       asic/src/
 ```
 
-### 3. Run OpenROAD flow
+### 2. Run OpenROAD flow (Docker)
 
 ```bash
-# Start Docker container
-docker run -it --platform linux/amd64 \
-  -v /path/to/OpenROAD-flow-scripts:/OpenROAD-flow-scripts \
-  -w /OpenROAD-flow-scripts \
-  openroad/flow-ubuntu22.04-builder:latest bash
+# Clone ORFS (shallow)
+git clone --depth 1 https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts.git
 
-# Inside container — copy design files
-cp -r /path/to/274FINAL_2.0/asic \
-  flow/designs/sky130hd/snn_conv
+# Pull the Docker image
+docker pull openroad/flow-ubuntu22.04-builder:latest
 
-# Run step by step
-cd flow
-make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk synth
-make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk floorplan
-make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk place
-make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk cts
-make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk route
-make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk finish
+# Copy design files into ORFS tree
+mkdir -p OpenROAD-flow-scripts/flow/designs/sky130hd/snn_conv
+cp -r asic/* OpenROAD-flow-scripts/flow/designs/sky130hd/snn_conv/
+
+# Run full flow (non-interactive)
+docker run --rm --platform linux/amd64 \
+  --security-opt seccomp=unconfined \
+  -v $(pwd)/OpenROAD-flow-scripts/flow/designs/sky130hd/snn_conv:/OpenROAD-flow-scripts/flow/designs/sky130hd/snn_conv \
+  -w /OpenROAD-flow-scripts/flow \
+  openroad/flow-ubuntu22.04-builder:latest \
+  bash -c "make DESIGN_CONFIG=./designs/sky130hd/snn_conv/flow/config.mk synth floorplan place cts route finish 2>&1"
 ```
 
-### 4. Read results
+> **CPU note**: `openroad/flow-ubuntu22.04-builder:latest` requires AVX2.
+> On pre-Zen2 / pre-Haswell CPUs, use an older image tag.
+> `SKIP_CTS_REPAIR_TIMING = 1` is set in `config.mk` to work around a
+> `detailed_placement` SIGILL on Zen2 hosts during the CTS timing-repair loop;
+> remove it if your CPU supports the required instruction set.
+
+### 3. Read results
 
 ```bash
-cat flow/reports/sky130hd/snn_conv/base/6_final_timing.rpt | grep "worst slack"
-cat flow/reports/sky130hd/snn_conv/base/6_final_area.rpt
-cat flow/reports/sky130hd/snn_conv/base/6_final_power.rpt
+# All metrics in one file
+cat logs/sky130hd/SNN_Conv_Top/base/6_report.json | python3 -m json.tool
+
+# Key numbers
+python3 -c "
+import json
+d = json.load(open('logs/sky130hd/SNN_Conv_Top/base/6_report.json'))
+print('Fmax:       ', d['finish__timing__fmax']/1e6, 'MHz')
+print('Setup WNS:  ', d['finish__timing__setup__ws'], 'ns')
+print('Hold WNS:   ', d['finish__timing__hold__ws'], 'ns')
+print('Core area:  ', d['finish__design__core__area']/1e6, 'mm²')
+print('Power:      ', d['finish__power__total'], 'W')
+"
 ```

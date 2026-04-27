@@ -13,6 +13,21 @@ A custom RTL implementation of a Spiking Neural Network (SNN) designed for MNIST
 - `sim/`: Testbenches for unit and batch testing.
 - `scripts/`: Python scripts for PyTorch model training, quantization, and verification.
 - `data/`: Extracted INT8 weights (`.hex`) and test images.
+- `asic/`: RTL-to-GDSII flow using OpenROAD + SKY130HD 130nm PDK.
+
+## 🔬 ASIC Implementation (SKY130HD)
+
+Full RTL-to-GDSII flow completed with OpenROAD on the SkyWater SKY130HD 130nm PDK.
+
+| Metric | Value |
+|--------|-------|
+| Achieved Fmax | **62 MHz** (target: 50 MHz) |
+| Setup WNS | **+3.88 ns** — 0 violations |
+| Core area | **8.875 mm²** @ 62% utilization |
+| Total power | **931 mW** |
+| DRC violations | **0** |
+
+See [`asic/README.md`](asic/README.md) for full setup instructions and [`asic/reports/6_report.json`](asic/reports/6_report.json) for complete metrics.
 
 ## 🚀 Quick Start
 
