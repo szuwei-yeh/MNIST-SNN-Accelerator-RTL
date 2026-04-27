@@ -7,27 +7,28 @@ export PLATFORM    = sky130hd
 export DESIGN_NAME = SNN_Conv_Top
 
 # ----- RTL Sources -------------------------------------------
-export VERILOG_FILES = $(DESIGN_DIR)/src/SNN_Conv_Top.sv      \
-                       $(DESIGN_DIR)/src/SNN_Accelerator.sv   \
-                       $(DESIGN_DIR)/src/AvgPooling.sv        \
-                       $(DESIGN_DIR)/src/LineBuffer.sv        \
-                       $(DESIGN_DIR)/src/ConvPE.sv            \
-                       $(DESIGN_DIR)/src/SparsityController.sv \
-                       $(DESIGN_DIR)/src/TimeStep_FSM.sv      \
-                       $(DESIGN_DIR)/src/Vmem_Array.sv
+export VERILOG_FILES = $(DESIGN_DIR)/../src/SNN_Conv_Top.sv      \
+                       $(DESIGN_DIR)/../src/SNN_Accelerator.sv   \
+                       $(DESIGN_DIR)/../src/AvgPooling.sv        \
+                       $(DESIGN_DIR)/../src/LineBuffer.sv        \
+                       $(DESIGN_DIR)/../src/ConvPE.sv            \
+                       $(DESIGN_DIR)/../src/SparsityController.sv \
+                       $(DESIGN_DIR)/../src/TimeStep_FSM.sv      \
+                       $(DESIGN_DIR)/../src/Vmem_Array.sv
 
 # ----- Constraints -------------------------------------------
-export SDC_FILE = $(DESIGN_DIR)/flow/constraint.sdc
+export SDC_FILE = $(DESIGN_DIR)/constraint.sdc
 
 # ----- Synthesis ---------------------------------------------
-# -sv flag enables SystemVerilog parsing in Yosys
-export SYNTH_ARGS = -sv
+export SYNTH_MEMORY_MAX_BITS = 100000
+export SYNTH_HDL_FRONTEND    = slang
+export SKIP_CTS_REPAIR_TIMING = 1
 
 # ----- Floorplan ---------------------------------------------
 # 500x500 um — conservative starting point for conv core
 # If you see "die area too small" errors, increase to 700 700
-export DIE_AREA   = 0 0 500 500
-export CORE_AREA  = 10 10 490 490
+export DIE_AREA   = 0 0 3000 3000
+export CORE_AREA  = 10 10 2990 2990
 
 # ----- Target Clock ------------------------------------------
 # Starting at 50 MHz (20 ns) — conservative for first run
